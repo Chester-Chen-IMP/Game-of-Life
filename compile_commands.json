@@ -1,0 +1,77 @@
+[
+  {
+    "file": "src/gameOfLife.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-O3",
+      "-std=c++17",
+      "-I./include",
+      "-c",
+      "src/gameOfLife.cpp",
+      "-o",
+      "obj/gameOfLife.o"
+    ],
+    "directory": "/home/MoxxieIMP/Documents/gameOfLife",
+    "output": "obj/gameOfLife.o"
+  },
+  {
+    "file": "src/gameStatusDetect.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-O3",
+      "-std=c++17",
+      "-I./include",
+      "-c",
+      "src/gameStatusDetect.cpp",
+      "-o",
+      "obj/gameStatusDetect.o"
+    ],
+    "directory": "/home/MoxxieIMP/Documents/gameOfLife",
+    "output": "obj/gameStatusDetect.o"
+  },
+  {
+    "file": "src/getInput.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-O3",
+      "-std=c++17",
+      "-I./include",
+      "-c",
+      "src/getInput.cpp",
+      "-o",
+      "obj/getInput.o"
+    ],
+    "directory": "/home/MoxxieIMP/Documents/gameOfLife",
+    "output": "obj/getInput.o"
+  },
+  {
+    "file": "src/main.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-O3",
+      "-std=c++17",
+      "-I./include",
+      "-c",
+      "src/main.cpp",
+      "-o",
+      "obj/main.o"
+    ],
+    "directory": "/home/MoxxieIMP/Documents/gameOfLife",
+    "output": "obj/main.o"
+  },
+  {
+    "file": "src/seedSaver.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-O3",
+      "-std=c++17",
+      "-I./include",
+      "-c",
+      "src/seedSaver.cpp",
+      "-o",
+      "obj/seedSaver.o"
+    ],
+    "directory": "/home/MoxxieIMP/Documents/gameOfLife",
+    "output": "obj/seedSaver.o"
+  }
+]
