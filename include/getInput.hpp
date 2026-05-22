@@ -2,6 +2,8 @@
 
 #include <array>
 
+extern const int SCREEN_WIDTH;
+extern const int SCREEN_HEIGHT;
 constexpr const int CELLS_AREA = 30;
 constexpr const int MAP_AREA = 32;
 
