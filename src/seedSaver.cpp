@@ -44,7 +44,7 @@ bool seedSaver(const std::string& seed) {
 
       if (std::next(it) == seed.end()) {
         processed_seed += each;
-        std::ofstream seed_file("../bin/seed.txt", std::ios::app);
+        std::ofstream seed_file("./seed.txt", std::ios::app);
         seed_file << "Seed saved at " << formatted_time << " {\n"
                   << processed_seed << "}\n";
         break;
@@ -54,5 +54,5 @@ bool seedSaver(const std::string& seed) {
     }
   }
 
-  return is_all_blank;
+  return !is_all_blank;
 }

@@ -1,3 +1,3 @@
-#include "gameOfLife.hpp"
+#include "../include/gameOfLife.hpp"
 
 int main() { game(); }

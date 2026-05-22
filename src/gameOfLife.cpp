@@ -66,6 +66,7 @@ struct TerminalInit {
     tty.c_lflag &= ~(ICANON | ECHO);
     tty.c_cc[VMIN] = 0;
     tty.c_cc[VTIME] = 0;
+    tcsetattr(STDIN_FILENO, TCSANOW, &tty);
   }
 
   ~TerminalInit() {
@@ -81,6 +82,7 @@ void gameState(bool& state) {
       case 'q':
       case 'Q':
         state = false;
+        std::cout << "\033[2J\033[H";
         std::cout << "\n模拟中断。";
         break;
       case '+':
@@ -184,27 +186,30 @@ void game() {
       std::cout << '\n';
     }
     cells = cells_next;
+    iteration_counts++;
     if (cells_at_start == cells) {
       if (isAllDead(cells)) {
+        std::cout << "\033[2J\033[H";
         std::cout << "\n所有细胞死亡。";
         break;
       }
+      std::cout << "\033[2J\033[H";
       std::cout << "\n检测到状态稳定。";
       break;
     } else if (isCyclic(cells, history)) {
+      std::cout << "\033[2J\033[H";
       std::cout << "\n检测到循环状态。";
       break;
     } else {
       std::this_thread::sleep_for(std::chrono::milliseconds(current_delay_ms));
-      iteration_counts++;
       std::cout << "\033[2J\033[H";
       continue;
     }
   }
-  std::cout << "\033[2J\033[H";
   if (is_seed_save) {
     std::cout << "\n模拟结束。\n迭代次数：" << iteration_counts
-              << "。\n种子已保存至./seed.txt。\n";
+              << "。\n种子已保存至seed.txt。\n";
+  } else {
+    std::cout << "\n未进行任何操作。游戏退出。\n";
   }
-  std::cout << "\n未进行任何操作。游戏退出。\n";
 }

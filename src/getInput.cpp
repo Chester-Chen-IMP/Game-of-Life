@@ -43,7 +43,7 @@ std::array<std::array<bool, CELLS_AREA>, CELLS_AREA> input() {
       if (getmouse(&event) == OK) {
         int phy_row = event.y;
         int phy_col = event.x;
-        int logic_row = phy_row - WIDTH_OF_WCHAR;
+        int logic_row = phy_row - row_offset;
         int logic_col = (phy_col - column_offset) / WIDTH_OF_WCHAR;
 
         if (logic_row > 0 && logic_row < MAP_AREA - 1 && logic_col > 0 &&
