@@ -138,7 +138,6 @@ void forAround(std::array<std::array<bool, CELLS_AREA>, CELLS_AREA>& cells,
 }
 
 void game() {
-  static bool game_state = true;
   static size_t iteration_counts = 0;
   std::array<Point, 8> points_around{};
   std::unordered_set<std::string> history{};
