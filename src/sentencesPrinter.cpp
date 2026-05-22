@@ -22,7 +22,6 @@ void SentencePrinter::print() const {
 }
 
 void SentencePrinter::slowPrint(const std::string& text) const {
-  setenv("LANG", "en_US.UTF-8", 1);
 #ifdef DEBUG
   std::string accumulated;
 #endif

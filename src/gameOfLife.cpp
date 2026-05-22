@@ -21,12 +21,13 @@ const int SCREEN_WIDTH = 179;
 const int SCREEN_HEIGHT = 48;
 
 constexpr const int MAX_SPEED_LEVEL = 10;
-constexpr const int MIN_SPEEF_LEVEL = -10;
+constexpr const int MIN_SPEED_LEVEL = -10;
 constexpr const int DEFAULT_SPEED_LEVEL = 0;
 static int speed_level = DEFAULT_SPEED_LEVEL;
-
 int speedLevelToDelay(int level);
 static int current_delay_ms = speedLevelToDelay(speed_level);
+
+bool game_state = true;
 
 // 速度的对数映射
 // 公式：delay = base * (ratio ^ (-level))
@@ -75,6 +76,8 @@ struct TerminalInit {
   }
 };
 
+bool user_aborted = false;
+
 void gameState(bool& state) {
   if (kbhit()) {
     char key = getchar();
@@ -82,8 +85,7 @@ void gameState(bool& state) {
       case 'q':
       case 'Q':
         state = false;
-        std::cout << "\033[2J\033[H";
-        std::cout << "\n模拟中断。";
+        user_aborted = true;
         break;
       case '+':
       case '=':
@@ -94,7 +96,7 @@ void gameState(bool& state) {
         break;
       case '-':
       case '_':
-        if (speed_level > MIN_SPEEF_LEVEL) {
+        if (speed_level > MIN_SPEED_LEVEL) {
           speed_level--;
           current_delay_ms = speedLevelToDelay(speed_level);
         }
@@ -138,7 +140,10 @@ void forAround(std::array<std::array<bool, CELLS_AREA>, CELLS_AREA>& cells,
 }
 
 void game() {
-  static size_t iteration_counts = 0;
+  user_aborted = false;
+  int c;
+  while ((c = getchar()) != '\n' && c != EOF);
+  size_t iteration_counts = 0;
   std::array<Point, 8> points_around{};
   std::unordered_set<std::string> history{};
 
@@ -149,7 +154,7 @@ void game() {
   auto initial_state = gridToString(cells);
   history.insert(initial_state);
 
-  auto is_seed_save = seedSaver(seed);
+  auto is_seed_saved = seedSaver(seed);
 
   while (game_state == true) {
     gameState(game_state);
@@ -163,9 +168,11 @@ void game() {
 
     auto cells_at_start = cells;
     auto cells_next = cells;
+    int column_offset = (SCREEN_WIDTH - MAP_AREA * 2) / 2;
+    column_offset -= column_offset % 2;
+
     for (int i = 0; i < MAP_AREA; ++i) {
-      for (int space_counts = 0;
-           space_counts < (SCREEN_WIDTH - MAP_AREA * 2) / 2; ++space_counts) {
+      for (int space_counts = 0; space_counts < column_offset; ++space_counts) {
         std::cout << ' ';
       }
       for (int j = 0; j < MAP_AREA; ++j) {
@@ -184,20 +191,27 @@ void game() {
       }
       std::cout << '\n';
     }
+    if (user_aborted) {
+      std::cout << "\n模拟中断。\n种子已保存至seed.txt。\n";
+      return;
+    }
     cells = cells_next;
     iteration_counts++;
     if (cells_at_start == cells) {
-      if (isAllDead(cells)) {
+      if (is_seed_saved) {  // 实际是检测用户有没有输入种子
+        if (isAllDead(cells)) {
+          std::cout << "\033[2J\033[H";
+          std::cout << "\n所有细胞死亡。\n模拟结束。";
+          break;
+        }
         std::cout << "\033[2J\033[H";
-        std::cout << "\n所有细胞死亡。";
+        std::cout << "\n检测到状态稳定。\n模拟结束。";
         break;
-      }
-      std::cout << "\033[2J\033[H";
-      std::cout << "\n检测到状态稳定。";
+      }  // 没有就跳过这一步
       break;
     } else if (isCyclic(cells, history)) {
       std::cout << "\033[2J\033[H";
-      std::cout << "\n检测到循环状态。";
+      std::cout << "\n检测到循环状态。\n模拟结束。";
       break;
     } else {
       std::this_thread::sleep_for(std::chrono::milliseconds(current_delay_ms));
@@ -205,8 +219,9 @@ void game() {
       continue;
     }
   }
-  if (is_seed_save) {
-    std::cout << "\n模拟结束。\n迭代次数：" << iteration_counts
+
+  if (is_seed_saved) {  // 和上面逻辑差不多
+    std::cout << "\n迭代次数：" << iteration_counts
               << "。\n种子已保存至seed.txt。\n";
   } else {
     std::cout << "\n未进行任何操作。游戏退出。\n";

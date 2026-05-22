@@ -22,6 +22,7 @@ std::array<std::array<bool, CELLS_AREA>, CELLS_AREA> input() {
   clear();
 
   int column_offset = (SCREEN_WIDTH - MAP_AREA * 2) / 2;
+  column_offset -= column_offset % 2;
   int row_offset = 3;
   const int WIDTH_OF_WCHAR = 2;
 
@@ -51,7 +52,7 @@ std::array<std::array<bool, CELLS_AREA>, CELLS_AREA> input() {
           int gridX = logic_row - 1;
           int gridY = logic_col - 1;
           grid[gridX][gridY] = !grid[gridX][gridY];
-          move(phy_row, phy_col % WIDTH_OF_WCHAR == 1 ? phy_col : phy_col - 1);
+          move(phy_row, phy_col - (phy_col % WIDTH_OF_WCHAR));
           addwstr(grid[gridX][gridY] ? L"⬛" : L"⬜");
           wnoutrefresh(stdscr);
           doupdate();
