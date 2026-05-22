@@ -66,11 +66,7 @@ sudo apt install libncurses-dev g++
 项目使用 Makefile 构建。在项目根目录执行：
 
 ```bash
-# 调试模式（含地址消毒剂）
 make
-
-# 发布模式（优化）
-make release
 
 # 清理构建文件
 make clean
