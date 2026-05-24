@@ -1,8 +1,11 @@
+#include <spawn.h>
+
 #include <chrono>
 #include <iostream>
 #include <string>
 #include <thread>
 
+#include "audioPlayer.hpp"
 #include "gameOfLife.hpp"
 #include "sentencesPrinter.hpp"
 
@@ -44,6 +47,10 @@ void gameRules() {
 }
 
 int main(int argc, char* argv[]) {
+  posix_spawn_file_actions_t actions;
+  AudioPlayer bgm;
+  bgm.setupSpawnActions(&actions);
+  bgm.play("/home/MoxxieIMP/Documents/gameOfLife/src/music/lofi.mp3");
   setenv("LANG", "en_US.UTF-8", 1);
   if (argc == 1) {
     game();
@@ -69,5 +76,6 @@ int main(int argc, char* argv[]) {
       return 1;
     }
   }
+  bgm.stop();
   return 0;
 }

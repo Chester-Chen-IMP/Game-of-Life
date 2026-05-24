@@ -1,11 +1,38 @@
-#include "../include/getInput.hpp"
+#include "getInput.hpp"
 
 #include <locale.h>
 #include <ncurses.h>
+#include <unistd.h>
 #include <wchar.h>
 
-#include <cstdlib>
+#include <array>
 #include <iostream>
+#include <string>
+
+#include "getWidth.hpp"
+#include "seedGenerator.hpp"
+
+namespace {
+void drawGrid(
+    int row_offset, int column_offset,
+    const std::array<std::array<bool, CELLS_AREA>, CELLS_AREA>& grid) {
+  constexpr int WIDTH_OF_WCHAR = 2;
+  for (int i = 0; i < MAP_AREA; ++i) {
+    for (int j = 0; j < MAP_AREA; ++j) {
+      bool is_border =
+          (i == 0 || i == MAP_AREA - 1 || j == 0 || j == MAP_AREA - 1);
+      if (is_border) {
+        mvaddwstr(i + row_offset, j * WIDTH_OF_WCHAR + column_offset, L"🧱");
+      } else {
+        int gridX = i - 1;
+        int gridY = j - 1;
+        mvaddwstr(i + row_offset, j * WIDTH_OF_WCHAR + column_offset,
+                  grid[gridX][gridY] ? L"⬛" : L"⬜");
+      }
+    }
+  }
+}
+}  // namespace
 
 std::array<std::array<bool, CELLS_AREA>, CELLS_AREA> input() {
   setlocale(LC_ALL, "");
@@ -14,31 +41,36 @@ std::array<std::array<bool, CELLS_AREA>, CELLS_AREA> input() {
   cbreak();
   noecho();
   keypad(stdscr, TRUE);
+  nodelay(stdscr, TRUE);
   ESCDELAY = 0;
   mousemask(BUTTON1_CLICKED, NULL);
 
   std::array<std::array<bool, CELLS_AREA>, CELLS_AREA> grid{};
 
   clear();
-
-  int column_offset = (SCREEN_WIDTH - MAP_AREA * 2) / 2;
+  int column_offset = (COLS - MAP_AREA * 2) / 2;
   column_offset -= column_offset % 2;
   int row_offset = 3;
   const int WIDTH_OF_WCHAR = 2;
 
-  for (int i = 0; i < MAP_AREA; ++i) {
-    for (int j = 0; j < MAP_AREA; ++j) {
-      move(i + row_offset, j * WIDTH_OF_WCHAR + column_offset);
-      bool is_border =
-          (i == 0 || i == MAP_AREA - 1 || j == 0 || j == MAP_AREA - 1);
-      mvaddstr(i + row_offset, j * WIDTH_OF_WCHAR + column_offset,
-               is_border ? "🧱" : "⬜");
-    }
-  }
+  std::string seed_generate_text{"[🎲随机种子🎲]"};
+  int text_display_width = getWidth(seed_generate_text);
+
+  int text_row = LINES - 2;  // -2 是因为我的 kitty 终端设置了标签栏两行高
+  int text_col = (COLS - text_display_width) / 2;
+
+  drawGrid(row_offset, column_offset, grid);
+  mvaddstr(text_row, text_col, seed_generate_text.c_str());
   refresh();
 
-  int ch = 0;
-  while ((ch = getch()) != ' ') {
+  bool done = false;
+  while (!done) {
+    int ch = getch();
+    if (ch == ERR) {
+      usleep(10000);
+      continue;
+    }
+
     if (ch == KEY_MOUSE) {
       MEVENT event;
       if (getmouse(&event) == OK) {
@@ -54,19 +86,39 @@ std::array<std::array<bool, CELLS_AREA>, CELLS_AREA> input() {
           grid[gridX][gridY] = !grid[gridX][gridY];
           move(phy_row, phy_col - (phy_col % WIDTH_OF_WCHAR));
           addwstr(grid[gridX][gridY] ? L"⬛" : L"⬜");
-          wnoutrefresh(stdscr);
-          doupdate();
+          refresh();
+        } else if (phy_row == text_row && phy_col >= text_col &&
+                   phy_col < text_col + text_display_width) {
+          grid = seedGenerate();
+          drawGrid(row_offset, column_offset, grid);
+          mvaddstr(text_row, text_col, seed_generate_text.c_str());
+          refresh();
         }
       }
+      continue;
     }
-#if 1
-    if (ch == 'q' || ch == 'Q') {
-      std::cout << "已退出。";
-      endwin();
-      exit(0);
+
+    switch (ch) {
+      case 'q':
+      case 'Q':
+        std::cout << "已退出。\n";
+        endwin();
+        exit(0);
+      case 'g':
+      case 'G':
+        grid = seedGenerate();
+        drawGrid(row_offset, column_offset, grid);
+        mvaddstr(text_row, text_col, seed_generate_text.c_str());
+        refresh();
+        break;
+      case ' ':  // 开始游戏
+        done = true;
+        break;
+      default:
+        break;
     }
-#endif
   }
+
   endwin();
   return grid;
 }

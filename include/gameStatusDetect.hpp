@@ -10,7 +10,6 @@
 #include "getInput.hpp"
 
 bool kbhit();
-char getch();
 
 std::string gridToString(
     const std::array<std::array<bool, CELLS_AREA>, CELLS_AREA>& grid);

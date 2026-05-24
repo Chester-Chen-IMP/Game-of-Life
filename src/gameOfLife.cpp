@@ -1,5 +1,7 @@
-#include "../include/gameOfLife.hpp"
+#include "gameOfLife.hpp"
 
+#include <asm-generic/ioctls.h>
+#include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
 
@@ -7,18 +9,19 @@
 #include <chrono>
 #include <cmath>
 #include <cstddef>
+#include <cstdlib>
 #include <iostream>
 #include <string>
 #include <thread>
 #include <unordered_set>
 
-#include "../include/gameStatusDetect.hpp"
-#include "../include/getInput.hpp"
-#include "../include/pointAsIndex.hpp"
-#include "../include/seedSaver.hpp"
+#include "gameStatusDetect.hpp"
+#include "getInput.hpp"
+#include "pointAsIndex.hpp"
+#include "seedSaver.hpp"
 
-const int SCREEN_WIDTH = 179;
-const int SCREEN_HEIGHT = 48;
+const int SCREEN_WIDTH = std::atoi(getenv("COLUMNS") ?: "179");
+const int SCREEN_HEIGHT = std::atoi(getenv("LINES") ?: "47");
 
 constexpr const int MAX_SPEED_LEVEL = 10;
 constexpr const int MIN_SPEED_LEVEL = -10;
@@ -110,33 +113,25 @@ void gameState(bool& state) {
   }
 }
 
-void forAround(std::array<std::array<bool, CELLS_AREA>, CELLS_AREA>& cells,
-               bool& cell, const Point& center_point) {
-  static std::array<Point, 8> points_around{};
+bool nextCellState(
+    const std::array<std::array<bool, CELLS_AREA>, CELLS_AREA>& cells,
+    const Point& center_point) {
   int alive_amounts = 0;
-  points_around = {Point(center_point.x - 1, center_point.y + 1),
-                   Point(center_point.x - 1, center_point.y),
-                   Point(center_point.x - 1, center_point.y - 1),
-                   Point(center_point.x, center_point.y + 1),
-                   Point(center_point.x, center_point.y - 1),
-                   Point(center_point.x + 1, center_point.y + 1),
-                   Point(center_point.x + 1, center_point.y),
-                   Point(center_point.x + 1, center_point.y - 1)};
-  for (auto each : points_around) {
-    if (at(cells, each) == 1) {
-      alive_amounts++;
+  for (int dx = -1; dx <= 1; ++dx) {
+    for (int dy = -1; dy <= 1; ++dy) {
+      if (dx == 0 && dy == 0) {
+        continue;
+      }
+      if (at(cells, Point(center_point.x + dx, center_point.y + dy))) {
+        ++alive_amounts;
+      }
     }
   }
-  if (cell == 0) {
-    if (alive_amounts == 3) {
-      cell = 1;
-    }
+  bool current_alive = at(cells, center_point);
+  if (current_alive) {
+    return alive_amounts == 2 || alive_amounts == 3;
   }
-  if (cell == 1) {
-    if (alive_amounts < 2 || alive_amounts > 3) {
-      cell = 0;
-    }
-  }
+  return alive_amounts == 3;
 }
 
 void game() {
@@ -144,7 +139,6 @@ void game() {
   int c;
   while ((c = getchar()) != '\n' && c != EOF);
   size_t iteration_counts = 0;
-  std::array<Point, 8> points_around{};
   std::unordered_set<std::string> history{};
 
   auto cells = input();
@@ -153,8 +147,6 @@ void game() {
   auto seed = gridToString(cells);
   auto initial_state = gridToString(cells);
   history.insert(initial_state);
-
-  auto is_seed_saved = seedSaver(seed);
 
   while (game_state == true) {
     gameState(game_state);
@@ -166,8 +158,8 @@ void game() {
               << " | [+/-] 调节速度 | [r/R] 重置速度 | [q/Q] 退出游戏\n\n\n"
               << std::flush;
 
-    auto cells_at_start = cells;
     auto cells_next = cells;
+    bool stable = true;
     int column_offset = (SCREEN_WIDTH - MAP_AREA * 2) / 2;
     column_offset -= column_offset % 2;
 
@@ -176,17 +168,17 @@ void game() {
         std::cout << ' ';
       }
       for (int j = 0; j < MAP_AREA; ++j) {
-        if (i == 0 || i == MAP_AREA - 1) {
+        if (i == 0 || i == MAP_AREA - 1 || j == 0 || j == MAP_AREA - 1) {
           std::cout << "🧱";
-        } else if (j == 0 || j == MAP_AREA - 1) {
-          std::cout << "🧱";
-        }
-        if (i < MAP_AREA - 1 && j < MAP_AREA - 1 && i > 0 && j > 0) {
+        } else {
           int gridX = i - 1;
           int gridY = j - 1;
-          forAround(cells_at_start, cells_next[gridX][gridY],
-                    Point(gridX, gridY));
-          std::cout << (cells[gridX][gridY] == 1 ? "⬛" : "⬜");
+          bool next_state = nextCellState(cells, Point(gridX, gridY));
+          cells_next[gridX][gridY] = next_state;
+          if (next_state != cells[gridX][gridY]) {
+            stable = false;
+          }
+          std::cout << (cells[gridX][gridY] ? "⬛" : "⬜");
         }
       }
       std::cout << '\n';
@@ -195,10 +187,11 @@ void game() {
       std::cout << "\n模拟中断。\n种子已保存至seed.txt。\n";
       return;
     }
-    cells = cells_next;
+    cells = std::move(cells_next);
     iteration_counts++;
-    if (cells_at_start == cells) {
-      if (is_seed_saved) {  // 实际是检测用户有没有输入种子
+
+    if (stable) {
+      if (seedSaver(seed)) {
         if (isAllDead(cells)) {
           std::cout << "\033[2J\033[H";
           std::cout << "\n所有细胞死亡。\n模拟结束。";
@@ -207,20 +200,19 @@ void game() {
         std::cout << "\033[2J\033[H";
         std::cout << "\n检测到状态稳定。\n模拟结束。";
         break;
-      }  // 没有就跳过这一步
+      }
       break;
-    } else if (isCyclic(cells, history)) {
+    }
+    if (isCyclic(cells, history)) {
       std::cout << "\033[2J\033[H";
       std::cout << "\n检测到循环状态。\n模拟结束。";
       break;
-    } else {
-      std::this_thread::sleep_for(std::chrono::milliseconds(current_delay_ms));
-      std::cout << "\033[2J\033[H";
-      continue;
     }
+    std::this_thread::sleep_for(std::chrono::milliseconds(current_delay_ms));
   }
+  auto is_seed_saved = seedSaver(seed, iteration_counts);
 
-  if (is_seed_saved) {  // 和上面逻辑差不多
+  if (is_seed_saved) {
     std::cout << "\n迭代次数：" << iteration_counts
               << "。\n种子已保存至seed.txt。\n";
   } else {
