@@ -5,17 +5,16 @@
 
 #include <array>
 #include <string>
-#include <unordered_set>
 
 #include "getInput.hpp"
+#include "history.hpp"
+
+using Cell = std::array<std::array<bool, CELLS_AREA>, CELLS_AREA>;
 
 bool kbhit();
 
-std::string gridToString(
-    const std::array<std::array<bool, CELLS_AREA>, CELLS_AREA>& grid);
+std::string gridToString(const Cell& grid);
 
-bool isCyclic(const std::array<std::array<bool, CELLS_AREA>, CELLS_AREA>& grid,
-              std::unordered_set<std::string>& history);
+bool isCyclic(const Cell& grid, History<std::string>& history);
 
-bool isAllDead(
-    const std::array<std::array<bool, CELLS_AREA>, CELLS_AREA>& grid);
+bool isAllDead(const Cell& grid);

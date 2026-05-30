@@ -65,8 +65,9 @@ int main(int argc, char* argv[]) {
       std::cout << "       -h, --help 显示游戏帮助\n";
       std::cout << "       -r, --rule 显示游戏规则并进入\n";
       std::cout << "       -d, --direct 直接进入游戏\n";
-      std::cout << "使用-d/--direct选项或不使用参数时，"
-                << "需要按下回车键进入游戏。\n";
+      std::cout
+        << "使用-d/--direct选项或不使用参数时，"
+        << "需要按下回车键进入游戏。\n";
     } else if (arg == "-r" || arg == "--rule") {
       gameRules();
     } else if (arg == "-d" || arg == "--direct") {

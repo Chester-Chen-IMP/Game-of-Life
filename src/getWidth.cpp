@@ -7,34 +7,32 @@ std::pair<uint32_t, int> decodeUtf8(const std::string& str, size_t pos) {
   uint8_t c = static_cast<uint8_t>(str[pos]);
 
   // 1-byte sequence (ASCII)
-  if ((c & 0x80) == 0) {
-    return {c, 1};
-  }
+  if ((c & 0x80) == 0) return {c, 1};
 
   // 2-byte sequence
   if ((c & 0xE0) == 0xC0) {
     if (pos + 1 >= str.size()) return {0, 0};
     uint32_t cp =
-        ((c & 0x1F) << 6) | (static_cast<uint8_t>(str[pos + 1]) & 0x3F);
+      ((c & 0x1F) << 6) | (static_cast<uint8_t>(str[pos + 1]) & 0x3F);
     return {cp, 2};
   }
 
   // 3-byte sequence
   if ((c & 0xF0) == 0xE0) {
     if (pos + 2 >= str.size()) return {0, 0};
-    uint32_t cp = ((c & 0x0F) << 12) |
-                  ((static_cast<uint8_t>(str[pos + 1]) & 0x3F) << 6) |
-                  (static_cast<uint8_t>(str[pos + 2]) & 0x3F);
+    uint32_t cp = ((c & 0x0F) << 12)
+                  | ((static_cast<uint8_t>(str[pos + 1]) & 0x3F) << 6)
+                  | (static_cast<uint8_t>(str[pos + 2]) & 0x3F);
     return {cp, 3};
   }
 
   // 4-byte sequence
   if ((c & 0xF8) == 0xF0) {
     if (pos + 3 >= str.size()) return {0, 0};
-    uint32_t cp = ((c & 0x07) << 18) |
-                  ((static_cast<uint8_t>(str[pos + 1]) & 0x3F) << 12) |
-                  ((static_cast<uint8_t>(str[pos + 2]) & 0x3F) << 6) |
-                  (static_cast<uint8_t>(str[pos + 3]) & 0x3F);
+    uint32_t cp = ((c & 0x07) << 18)
+                  | ((static_cast<uint8_t>(str[pos + 1]) & 0x3F) << 12)
+                  | ((static_cast<uint8_t>(str[pos + 2]) & 0x3F) << 6)
+                  | (static_cast<uint8_t>(str[pos + 3]) & 0x3F);
     return {cp, 4};
   }
 
@@ -87,7 +85,7 @@ bool isWchar(uint32_t cp) {
 
 // 计算一个 UTF-8 字符串的显示宽度
 int getWidth(const std::string& str) {
-  int width = 0;
+  int width  = 0;
   size_t pos = 0;
 
   while (pos < str.size()) {

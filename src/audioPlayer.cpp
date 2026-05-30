@@ -1,11 +1,12 @@
 #include "audioPlayer.hpp"
 
 #include <fcntl.h>
-#include <sys/wait.h>
 #include <unistd.h>
 
 #include <cstring>
 #include <iostream>
+
+#include <sys/wait.h>
 
 extern char** environ;
 
@@ -25,8 +26,13 @@ void AudioPlayer::setupSpawnActions(posix_spawn_file_actions_t* actions) {
 }
 
 bool AudioPlayer::play(const std::string& file) {
-  char* const argv[] = {(char*)"mpv", (char*)file.c_str(), (char*)"--no-video",
-                        (char*)"--really-quiet", nullptr};
+  char* const argv[] = {
+    (char*) "mpv",
+    (char*) file.c_str(),
+    (char*) "--no-video",
+    (char*) "--really-quiet",
+    nullptr
+  };
   posix_spawn_file_actions_t actions;
   setupSpawnActions(&actions);
   int ret = posix_spawn(&pid, "/usr/bin/mpv", &actions, nullptr, argv, environ);
