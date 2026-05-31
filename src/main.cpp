@@ -1,4 +1,5 @@
 #include <spawn.h>
+#include <unistd.h>
 
 #include <chrono>
 #include <iostream>
@@ -52,6 +53,10 @@ int main(int argc, char* argv[]) {
   bgm.setupSpawnActions(&actions);
   bgm.play("/home/MoxxieIMP/Documents/gameOfLife/src/music/lofi.mp3");
   setenv("LANG", "en_US.UTF-8", 1);
+  if (!isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO)) {
+    std::cerr << "请在真实终端中运行此程序，而不是在非交互式控制台中。\n";
+    return 1;
+  }
   if (argc == 1) {
     game();
     return 0;
