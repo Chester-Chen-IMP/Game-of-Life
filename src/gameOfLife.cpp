@@ -10,9 +10,11 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdlib>
+#include <optional>
 #include <stack>
 #include <string>
 #include <thread>
+#include <variant>
 
 #include "gameStatusDetect.hpp"
 #include "getInput.hpp"
@@ -250,14 +252,24 @@ class NcursesRenderer {
 class GameController {
  public:
   GameController()
-    : grid_(input()),
-      speed_level_(DEFAULT_SPEED_LEVEL),
+    : speed_level_(DEFAULT_SPEED_LEVEL),
       current_delay_ms_(speedLevelToDelay(DEFAULT_SPEED_LEVEL)),
       game_state_(true),
       paused_(false),
-      user_aborted_(false) {}
+      user_aborted_(false),
+      exit_in_input(false) {
+    auto result = input();
+
+    if (auto cell_ptr = std::get_if<Cell>(&result))
+      grid_.emplace(*cell_ptr);
+    else
+      exit_in_input = true;
+
+    if (!exit_in_input) renderer_.emplace();
+  }
 
   void run() {
+    if (exit_in_input) return;
     renderFrame();
 
     std::string final_message;
@@ -293,25 +305,25 @@ class GameController {
       }
 
       last_update = now;
-      grid_.advance();
+      grid_->advance();
 
-      renderer_.clearScreen();
-      renderer_.renderStatus(grid_.iterationCount(),
-                             speed_level_.load(),
-                             current_delay_ms_.load(),
-                             getSpeedDescription(speed_level_.load()),
-                             paused_.load());
-      renderer_.renderGrid(grid_.cells());
-      renderer_.refreshScreen();
+      renderer_->clearScreen();
+      renderer_->renderStatus(grid_->iterationCount(),
+                              speed_level_.load(),
+                              current_delay_ms_.load(),
+                              getSpeedDescription(speed_level_.load()),
+                              paused_.load());
+      renderer_->renderGrid(grid_->cells());
+      renderer_->refreshScreen();
 
       if (user_aborted_.load()) {
         final_message = "模拟中断。\n种子已保存至seed.txt。\n";
         break;
       }
 
-      if (grid_.isStable()) {
-        if (seedSaver(grid_.seed()))
-          if (grid_.isAllDead())
+      if (grid_->isStable()) {
+        if (seedSaver(grid_->seed()))
+          if (grid_->isAllDead())
             final_message = "所有细胞死亡。\n模拟结束。";
           else
             final_message = "检测到状态稳定。\n模拟结束。";
@@ -320,7 +332,7 @@ class GameController {
         break;
       }
 
-      if (grid_.isCyclic()) {
+      if (grid_->isCyclic()) {
         final_message = "检测到循环状态。\n模拟结束。\n";
         break;
       }
@@ -330,10 +342,10 @@ class GameController {
       showEndMessage(final_message);
     } else {
       const bool is_seed_saved =
-        seedSaver(grid_.seed(), grid_.iterationCount());
+        seedSaver(grid_->seed(), grid_->iterationCount());
       if (is_seed_saved) {
         showEndMessage("迭代次数："
-                       + std::to_string(grid_.iterationCount())
+                       + std::to_string(grid_->iterationCount())
                        + "。\n种子已保存至seed.txt。\n");
       } else {
         showEndMessage("未进行任何操作。游戏退出。\n");
@@ -375,41 +387,42 @@ class GameController {
         break;
     }
 
-    if (key == KEY_LEFT) grid_.undo();
+    if (key == KEY_LEFT) grid_->undo();
 
     if (key == KEY_RIGHT) {
-      if (!grid_.isRedoEmpty())
-        grid_.redo();
+      if (!grid_->isRedoEmpty())
+        grid_->redo();
       else
-        grid_.doNow();
+        grid_->doNow();
     }
   }
 
   void showEndMessage(const std::string& message) {
-    renderer_.renderMessage(message + "\n按任意键退出...");
+    renderer_->renderMessage(message + "\n按任意键退出...");
     nodelay(stdscr, FALSE);
     getch();
     nodelay(stdscr, TRUE);
   }
 
   void renderFrame() {
-    renderer_.clearScreen();
-    renderer_.renderStatus(grid_.iterationCount(),
-                           speed_level_.load(),
-                           current_delay_ms_.load(),
-                           getSpeedDescription(speed_level_.load()),
-                           paused_.load());
-    renderer_.renderGrid(grid_.cells());
-    renderer_.refreshScreen();
+    renderer_->clearScreen();
+    renderer_->renderStatus(grid_->iterationCount(),
+                            speed_level_.load(),
+                            current_delay_ms_.load(),
+                            getSpeedDescription(speed_level_.load()),
+                            paused_.load());
+    renderer_->renderGrid(grid_->cells());
+    renderer_->refreshScreen();
   }
 
-  LifeGrid grid_;
-  NcursesRenderer renderer_;
+  std::optional<LifeGrid> grid_;
+  std::optional<NcursesRenderer> renderer_;
   std::atomic<int> speed_level_;
   std::atomic<int> current_delay_ms_;
   std::atomic<bool> game_state_;
   std::atomic<bool> paused_;
   std::atomic<bool> user_aborted_;
+  bool exit_in_input;
 };
 
 void game() {

@@ -6,9 +6,10 @@
 #include <wchar.h>
 
 #include <array>
-#include <iostream>
 #include <string>
+#include <variant>
 
+#include "gameStatusDetect.hpp"
 #include "getWidth.hpp"
 #include "seedGenerator.hpp"
 
@@ -39,7 +40,7 @@ namespace {
 
 }  // namespace
 
-std::array<std::array<bool, CELLS_AREA>, CELLS_AREA> input() {
+std::variant<Cell, bool> input() {
   setlocale(LC_ALL, "");
   initscr();
   curs_set(0);
@@ -51,6 +52,7 @@ std::array<std::array<bool, CELLS_AREA>, CELLS_AREA> input() {
   mousemask(BUTTON1_CLICKED, NULL);
 
   std::array<std::array<bool, CELLS_AREA>, CELLS_AREA> grid {};
+  bool exit_by_user = false;
 
   clear();
   int column_offset         = (COLS - MAP_AREA * 2) / 2;
@@ -109,9 +111,9 @@ std::array<std::array<bool, CELLS_AREA>, CELLS_AREA> input() {
     switch (ch) {
       case 'q':
       case 'Q':
-        std::cout << "已退出。\n";
+        exit_by_user = true;
         endwin();
-        exit(0);
+        return exit_by_user;
       case 'g':
       case 'G':
         grid = seedGenerate();

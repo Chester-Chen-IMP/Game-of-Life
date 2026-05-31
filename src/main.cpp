@@ -2,6 +2,7 @@
 #include <unistd.h>
 
 #include <chrono>
+#include <cstdlib>
 #include <iostream>
 #include <string>
 #include <thread>
@@ -47,16 +48,7 @@ void gameRules() {
   }
 }
 
-int main(int argc, char* argv[]) {
-  posix_spawn_file_actions_t actions;
-  AudioPlayer bgm;
-  bgm.setupSpawnActions(&actions);
-  bgm.play("/home/MoxxieIMP/Documents/gameOfLife/src/music/lofi.mp3");
-  setenv("LANG", "en_US.UTF-8", 1);
-  if (!isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO)) {
-    std::cerr << "请在真实终端中运行此程序，而不是在非交互式控制台中。\n";
-    return 1;
-  }
+int handleArg(int argc, char* argv[]) {
   if (argc == 1) {
     game();
     return 0;
@@ -82,6 +74,30 @@ int main(int argc, char* argv[]) {
       return 1;
     }
   }
-  bgm.stop();
+  return 0;
+}
+
+struct BGM {
+  AudioPlayer bgm;
+
+  BGM(posix_spawn_file_actions_t& actions, const std::string& file) {
+    bgm.setupSpawnActions(&actions);
+    bgm.play(file);
+  }
+
+  ~BGM() { bgm.stop(); }
+};
+
+int main(int argc, char* argv[]) {
+  posix_spawn_file_actions_t actions;
+  std::string home       = getenv("HOME");
+  std::string music_path = home + "/Music/audio.mp3";
+  BGM bgm(actions, music_path);
+  setenv("LANG", "en_US.UTF-8", 1);
+  if (!isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO)) {
+    std::cerr << "请在真实终端中运行此程序，而不是在非交互式控制台中。\n";
+    return 1;
+  }
+  handleArg(argc, argv);
   return 0;
 }
